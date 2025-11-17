@@ -1,5 +1,5 @@
-import type { ProtonFile } from '../../proton';
-import type { PackageDescriptor } from './package-descriptor.model';
+import type { ProtonFile } from '../proton';
+import type { PackageDescriptor } from './descriptor.model';
 import {
   computeDebDescriptor,
   computeHashDescriptor,

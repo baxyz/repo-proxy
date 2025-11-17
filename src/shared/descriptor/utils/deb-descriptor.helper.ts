@@ -3,7 +3,7 @@ import { mkdtempSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import type { PackageDescriptor } from '../package-descriptor.model';
+import type { PackageDescriptor } from '../descriptor.model';
 import type { ExtraFile } from './extra-file.model';
 
 const execAsync = promisify(exec);

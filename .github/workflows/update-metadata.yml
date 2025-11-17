@@ -43,7 +43,7 @@ jobs:
           echo "🔐 Repository verified, proceeding with workflow..."
 
   # ============================================================================
-  # Phase 1: Parallel checks
+  # Phase 1: Download and check latest sources
   # ============================================================================
 
   check-proton-versions:
@@ -154,7 +154,7 @@ jobs:
           fi
 
   # ============================================================================
-  # Phase 2: Update package descriptors (if needed)
+  # Phase 2: Enrichments missing descriptors
   # ============================================================================
 
   update-descriptors:

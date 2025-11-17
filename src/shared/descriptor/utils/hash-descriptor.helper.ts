@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { PackageDescriptor } from '../package-descriptor.model';
+import type { PackageDescriptor } from '../descriptor.model';
 import type { ExtraFile } from './extra-file.model';
 
 /**

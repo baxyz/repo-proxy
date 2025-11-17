@@ -2,7 +2,7 @@ import type z from 'zod';
 import type {
   PackageDescriptorSchema,
   PackageDescriptorsSchema,
-} from './package-descriptor.schema';
+} from './descriptor.schema';
 
 /**
  * Package descriptors
