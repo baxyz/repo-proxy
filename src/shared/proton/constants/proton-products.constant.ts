@@ -4,6 +4,7 @@
 export enum ProtonProduct {
   MAIL = 'mail',
   PASS = 'pass',
+  AUTH = 'authenticator',
 }
 
 /**
