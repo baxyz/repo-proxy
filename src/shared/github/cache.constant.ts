@@ -7,12 +7,18 @@ export const GITHUB_CACHE_KEY = {
   /**
    * Cache for origin files.
    */
-  SOURCE: "SOURCE",
+  SOURCES: "SOURCES",
+
+  /**
+   * Cache for enriched descriptor files.
+   */
+  DESCRIPTORS: "DESCRIPTORS",
 }
 
 export const GITHUB_CACHE_FILE = {
   PROTON: <Record<ProtonProduct, string>>{
     [ProtonProduct.MAIL]: "proton-mail.json",
     [ProtonProduct.PASS]: "proton-pass.json",
+    [ProtonProduct.AUTH]: "proton-authenticator.json",
   }
 }

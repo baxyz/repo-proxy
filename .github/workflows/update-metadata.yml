@@ -21,6 +21,7 @@ on:
 
 env:
   NODE_VERSION: "22"
+  PNPM_VERSION: "10"
   CACHE_PREFIX: "update-metadata"
   PROTON_CACHE_DIR: /tmp/proton-api-cache
   PROTON_CACHE_KEY: proton-files-${{ github.run_id }}
@@ -46,22 +47,24 @@ jobs:
   # Phase 1: Download and check latest sources
   # ============================================================================
 
-  check-proton-versions:
+  proton-sources:
     runs-on: ubuntu-latest
-    name: Check Proton versions
+    name: Check Proton sources
     needs: [verify-repository]
-    outputs:
-      mail_version: ${{ steps.extract.outputs.MAIL_VERSION }}
-      pass_version: ${{ steps.extract.outputs.PASS_VERSION }}
+    matrix:
+      proton-product: [mail, pass, auth]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -69,58 +72,34 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Ensure cache directory
-        run: mkdir -p ${{ env.PROTON_CACHE_DIR }}
 
       - name: Download Proton API responses
-        run: pnpm ci:check-proton-versions:download
+        run: pnpm ci:source:proton
         env:
-          PROTON_CACHE_DIR: ${{ env.PROTON_CACHE_DIR }}
+          proton_product: ${{ matrix.proton-product }}
 
-      - name: Validate API responses
-        run: pnpm ci:check-proton-versions:validate
-        env:
-          PROTON_CACHE_DIR: ${{ env.PROTON_CACHE_DIR }}
+  # ============================================================================
+  # Phase 2: Enrich descriptors using KV cache
+  # ============================================================================
 
-      - name: Extract latest versions
-        id: extract
-        run: pnpm ci:check-proton-versions:versions
-        env:
-          PROTON_CACHE_DIR: ${{ env.PROTON_CACHE_DIR }}
-
-      - name: Cache Proton API files
-        id: cache
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.PROTON_CACHE_DIR }}
-          key: ${{ env.PROTON_CACHE_KEY }}
-
-      - name: Display results
-        run: |
-          echo "🔍 Version Check Results:"
-          echo "📦 Proton Mail: ${{ steps.extract.outputs.MAIL_VERSION }}"
-          echo "📦 Proton Pass: ${{ steps.extract.outputs.PASS_VERSION }}"
-          echo "💾 API files cached: ${{ env.PROTON_CACHE_KEY }}"
-
-  check-kv-caches:
+  proton-enrichments:
     runs-on: ubuntu-latest
-    name: Check KV caches
-    needs: [verify-repository]
-    outputs:
-      apt_mail_version: ${{ steps.check.outputs.apt_mail_version }}
-      apt_pass_version: ${{ steps.check.outputs.apt_pass_version }}
-      descriptors_missing: ${{ steps.check.outputs.descriptors_missing }}
-      reasons: ${{ steps.check.outputs.reasons }}
+    name: Enrich Proton descriptors
+    needs: [proton-sources]
+    matrix:
+      proton-product: [mail, pass, auth]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -129,52 +108,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup Wrangler
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: whoami
-
-      - name: Check cache status
-        id: check
-        run: pnpm ci:check-kv-caches
+      - name: Download Proton API responses
+        run: pnpm ci:enrich:proton
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Display results
-        run: |
-          echo "🔍 Cache Check Results:"
-          echo "📦 APT Mail version: ${{ steps.check.outputs.apt_mail_version }}"
-          echo "📦 APT Pass version: ${{ steps.check.outputs.apt_pass_version }}"
-          echo "🔢 Descriptors missing: ${{ steps.check.outputs.descriptors_missing }}"
-          if [ -n "${{ steps.check.outputs.reasons }}" ]; then
-            echo "📝 Reasons: ${{ steps.check.outputs.reasons }}"
-          fi
+          proton_product: ${{ matrix.proton-product }}
 
   # ============================================================================
-  # Phase 2: Enrichments missing descriptors
+  # Phase 3: Update repository metadata
   # ============================================================================
 
-  update-descriptors:
+  repo-apt:
     runs-on: ubuntu-latest
-    name: Update package descriptors
-    needs: [check-proton-versions, check-kv-caches]
-    if: |
-      needs.check-proton-versions.outputs.mail_version != needs.check-kv-caches.outputs.apt_mail_version ||
-      needs.check-proton-versions.outputs.pass_version != needs.check-kv-caches.outputs.apt_pass_version ||
-      needs.check-kv-caches.outputs.descriptors_missing == 'true' ||
-      inputs.force_descriptors == true
+    name: Update APT repository
+    needs: [proton-enrichments]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -183,138 +141,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup Wrangler
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: whoami
-
-      - name: Restore Proton API cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PROTON_CACHE_DIR }}
-          key: ${{ env.PROTON_CACHE_KEY }}
-
-      - name: Download and calculate descriptors
-        run: pnpm ci:update-descriptors
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROTON_CACHE_DIR: /tmp/proton-api-cache
-
-      - name: Summary
-        run: |
-          echo "✅ Package descriptors updated"
-          if [ -f /tmp/proton-packages/package-descriptors.json ]; then
-            echo "📊 Descriptor file size: $(du -h /tmp/proton-packages/package-descriptors.json | cut -f1)"
-          fi
-
-  # ============================================================================
-  # Phase 3: Update format-specific metadata (parallel)
-  # ============================================================================
-
-  update-apt:
-    runs-on: ubuntu-latest
-    name: Update APT metadata
-    needs: [check-proton-versions, check-kv-caches, update-descriptors]
-    # Run if:
-    # 1. Descriptors were successfully updated (new packages available)
-    # 2. OR versions differ between Proton API and APT cache (version mismatch)
-    # 3. OR forced via input (can run even if update-descriptors was skipped)
-    # IMPORTANT: !cancelled() allows this job to run even if update-descriptors was skipped
-    if: |
-      !cancelled() &&
-      (
-        needs.update-descriptors.result == 'success' ||
-        needs.check-proton-versions.outputs.mail_version != needs.check-kv-caches.outputs.apt_mail_version ||
-        needs.check-proton-versions.outputs.pass_version != needs.check-kv-caches.outputs.apt_pass_version ||
-        inputs.force_apt
-      )
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup Wrangler
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: whoami
-
-      - name: Restore Proton API cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PROTON_CACHE_DIR }}
-          key: ${{ env.PROTON_CACHE_KEY }}
-
-      - name: Ensure output directory
-        run: mkdir -p ${{ env.APT_OUTPUT_DIR }}
-
-      - name: Generate APT metadata
-        run: pnpm ci:update-apt:generate
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROTON_CACHE_DIR: ${{ env.PROTON_CACHE_DIR }}
-          APT_OUTPUT_DIR: ${{ env.APT_OUTPUT_DIR }}
-
-      - name: Sign APT metadata with GPG
-        run: pnpm ci:update-apt:sign
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          APT_OUTPUT_DIR: ${{ env.APT_OUTPUT_DIR }}
-
-      - name: Cache APT metadata (for debugging)
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.APT_OUTPUT_DIR }}
-          key: ${{ env.APT_CACHE_KEY }}
-
-      - name: Verify APT metadata files
-        run: |
-          echo "🔍 Verifying APT metadata files..."
-          ls -lh ${{ env.APT_OUTPUT_DIR }}
-          echo ""
-          echo "📄 Packages file preview (first 20 lines):"
-          head -n 20 ${{ env.APT_OUTPUT_DIR }}/Packages || echo "⚠️  Packages file not found"
-          echo ""
-          echo "📋 Release file preview:"
-          cat ${{ env.APT_OUTPUT_DIR }}/Release || echo "⚠️  Release file not found"
-          echo ""
-          echo "🔐 GPG-signed files:"
-          [ -f "${{ env.APT_OUTPUT_DIR }}/InRelease" ] && echo "✅ InRelease found" || echo "⚠️  InRelease not found"
-          [ -f "${{ env.APT_OUTPUT_DIR }}/Release.gpg" ] && echo "✅ Release.gpg found" || echo "⚠️  Release.gpg not found"
-          [ -f "${{ env.APT_OUTPUT_DIR }}/public.gpg.key" ] && echo "✅ public.gpg.key found" || echo "⚠️  public.gpg.key not found"
-
-      - name: Upload to Cloudflare KV
-        run: pnpm ci:update-apt:upload "${{ env.APT_OUTPUT_DIR }}"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Summary
-        run: |
-          echo "✅ APT metadata updated"
-          echo "📦 Proton Mail: ${{ needs.check-proton-versions.outputs.mail_version }}"
-          echo "📦 Proton Pass: ${{ needs.check-proton-versions.outputs.pass_version }}"
-          echo "📂 Output directory: ${{ env.APT_OUTPUT_DIR }}"
-          echo "💾 Cached as: ${{ env.APT_CACHE_KEY }}"
-
-  # ============================================================================
-  # Future: RPM support (commented structure for future implementation)
-  # ============================================================================
+      - name: Download Proton API responses
+        run: pnpm ci:repo:apt

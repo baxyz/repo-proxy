@@ -21,7 +21,7 @@ async function run() {
     core.setFailed('Missing or invalid proton-product input');
     return;
   }
-  const cacheKey = GITHUB_CACHE_KEY.SOURCE;
+  const cacheKey = GITHUB_CACHE_KEY.SOURCES;
   const cacheFile = GITHUB_CACHE_FILE.PROTON[protonProduct];
   core.debug(`Using Proton product: ${protonProduct}`);
   core.debug(`Using cache key: ${cacheKey}`);

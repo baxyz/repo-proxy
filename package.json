@@ -5,9 +5,9 @@
   "main": "dist/worker.js",
   "type": "module",
   "scripts": {
-    "ci:source:proton": "tsx src/github/1-sources/source-proton.run.ts",
-    "ci:descriptor:proton": "tsx src/github/2-descriptors/descriptor-proton.run.ts",
-    "ci:repo:apt": "tsx src/github/3-repos/repo-apt.run.ts",
+    "ci:source:proton": "tsx src/github/1-source/source-proton.run.ts",
+    "ci:enrich:proton": "tsx src/github/2-enrich/descriptor-proton.run.ts",
+    "ci:repo:apt": "tsx src/github/3-repo/repo-apt.run.ts",
 
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
