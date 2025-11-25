@@ -1,2 +1,2 @@
 export * from './types';
-export {default as } from './worker';
+export { default } from './worker';

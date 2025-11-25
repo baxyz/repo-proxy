@@ -1,4 +1,4 @@
-import { PROTON_SERVER } from '../shared';
+import { PROTON_SERVER, proxyPathToUrl } from '../shared';
 import type { Env } from './types';
 
 /**
@@ -404,12 +404,11 @@ async function handleAptPublicKeyFromKV(
 /**
  * Handle APT proxy redirect - redirect /apt/proxy/* to https://proton.me/*
  * Example: /apt/proxy/download/mail/linux/1.9.1/file.deb -> https://proton.me/download/mail/linux/1.9.1/file.deb
+ * @see proxyPathToUrl
  */
 function handleAptProxyRedirect(path: string): Response {
-  // Remove /apt/proxy/ prefix to get the path relative to proton.me
-  const protonPath = path.replace(/^\/apt\/proxy\//, '');
-  const protonUrl = PROTON_SERVER + protonPath;
+  const url = proxyPathToUrl(path);
 
-  console.log(`Redirecting ${path} -> ${protonUrl}`);
-  return Response.redirect(protonUrl, 302);
+  console.log(`Redirecting ${path} -> ${url}`);
+  return Response.redirect(url, 302);
 }

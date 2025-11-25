@@ -53,8 +53,8 @@ export const PackageDescriptorSchema = z.object({
   lastVerified: z.iso.datetime(), // ISO date string when hash was last verified
 
   // Files
-  deb: z.record(ArchitectureSchema, PackageDescriptorFileSchema).optional(),
-  rpm: z.record(ArchitectureSchema, PackageDescriptorFileSchema).optional(),
+  deb: z.record(VersionSchema, PackageDescriptorFileSchema).optional(),
+  rpm: z.record(VersionSchema, PackageDescriptorFileSchema).optional(),
 });
 
 /**
@@ -70,6 +70,6 @@ export const SourceDescriptorSchema = PackageDescriptorSchema.partial({
   section: true,
   maintainer: true,
   homepage: true,
-  deb: z.record(ArchitectureSchema, SourceDescriptorFileSchema).optional(),
-  rpm: z.record(ArchitectureSchema, SourceDescriptorFileSchema).optional(),
+  deb: z.record(VersionSchema, SourceDescriptorFileSchema).optional(),
+  rpm: z.record(VersionSchema, SourceDescriptorFileSchema).optional(),
 });

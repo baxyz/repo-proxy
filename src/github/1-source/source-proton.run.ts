@@ -1,13 +1,13 @@
+import { writeFileSync } from 'node:fs';
 import * as cache from '@actions/cache';
 import * as core from '@actions/core';
-import { writeFile } from 'fs';
 import {
   fetchProtonProductAPI,
   fromProtonToSource,
   GITHUB_CACHE_FILE,
   GITHUB_CACHE_KEY,
   PROTON_PRODUCTS,
-  type ProtonApiError,
+  type ProtonApiResponse,
   type ProtonProduct,
 } from '../../shared';
 
@@ -28,23 +28,26 @@ async function run() {
   core.debug(`Using cache file: ${cacheFile}`);
 
   // Download Proton data
-  let apiResult;
+  let apiResult: ProtonApiResponse;
   try {
     apiResult = await fetchProtonProductAPI(protonProduct);
-  } catch (error: ProtonApiError) {
-    core.setFailed(error.toString());
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    core.setFailed(errorMsg);
     return;
   }
 
   // Clean and convert data to Source
   const sourceProduct = fromProtonToSource(apiResult);
-  if (sourceProduct.debFiles.length === 0 && sourceProduct.rpmFiles.length === 0) {
+  const debFilesCount = sourceProduct.deb ? Object.keys(sourceProduct.deb).length : 0;
+  const rpmFilesCount = sourceProduct.rpm ? Object.keys(sourceProduct.rpm).length : 0;
+  if (debFilesCount === 0 && rpmFilesCount === 0) {
     core.setFailed('No valid files found in Proton API response');
     return;
   }
 
   // Save file
-  writeFile(cacheFile, JSON.stringify(sourceProduct, null, 2), 'utf8');
+  writeFileSync(cacheFile, JSON.stringify(sourceProduct, null, 2), 'utf8');
   core.debug(`Saved Proton source data to ${cacheFile}`);
 
   // Save source
