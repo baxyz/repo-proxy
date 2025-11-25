@@ -7,8 +7,13 @@
  * Exhaustive list of all cache keys used in the application
  */
 export enum KVCacheKey {
-  /** Package descriptors cache for all downloaded packages */
+  /**
+   * Package descriptors cache for all downloaded packages.
+   * It's a JSON object where each key is a package URL and the value is the enriched package descriptor.
+   * @see KvDescriptorCache
+   */
   PACKAGE_DESCRIPTORS = 'package-descriptors',
+
   /** APT Release metadata */
   APT_RELEASE = 'apt-release',
   /** APT Packages list */

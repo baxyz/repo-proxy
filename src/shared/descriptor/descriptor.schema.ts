@@ -6,7 +6,7 @@ import { VersionSchema } from '../schema';
  * Complete package descriptor schema
  * Property names match Debian package descriptor format
  */
-export const DescriptorFileSchema = z.object({
+export const PackageDescriptorFileSchema = z.object({
   // Info
   version: VersionSchema,
 
@@ -31,7 +31,7 @@ export const DescriptorFileSchema = z.object({
 /**
  * Partial package descriptor schema
  */
-export const PartialDescriptorFileSchema = DescriptorFileSchema.partial({
+export const SourceDescriptorFileSchema = PackageDescriptorFileSchema.partial({
   size: true,
   md5: true,
   sha256: true,
@@ -39,9 +39,9 @@ export const PartialDescriptorFileSchema = DescriptorFileSchema.partial({
 });
 
 /**
- * Package descriptors source schema
+ * Package descriptor schema with all required fields, for all architectures and formats.
  */
-export const DescriptorsSourceSchema = z.object({
+export const PackageDescriptorSchema = z.object({
   // Info
   package: z.string().min(1), // e.g., proton-mail, proton-pass
   description: z.string(), // e.g., Proton official desktop application for Proton Mail and Proton Calendar
@@ -53,18 +53,23 @@ export const DescriptorsSourceSchema = z.object({
   lastVerified: z.iso.datetime(), // ISO date string when hash was last verified
 
   // Files
-  deb: z.record(ArchitectureSchema, DescriptorFileSchema).optional(),
-  rpm: z.record(ArchitectureSchema, DescriptorFileSchema).optional(),
+  deb: z.record(ArchitectureSchema, PackageDescriptorFileSchema).optional(),
+  rpm: z.record(ArchitectureSchema, PackageDescriptorFileSchema).optional(),
 });
 
 /**
- * Partial package descriptors source schema
+ * Source Descriptors schema, it's a partial version of the final enriched
+ * package descriptor schema.
+ *
+ * Typical missing fields:
+ *  - file hashes and size
+ *  - repository info (section, maintainer, homepage)
  */
-export const PartialDescriptorsSourceSchema = DescriptorsSourceSchema.partial({
+export const SourceDescriptorSchema = PackageDescriptorSchema.partial({
   description: true,
   section: true,
   maintainer: true,
   homepage: true,
-  deb: z.record(ArchitectureSchema, PartialDescriptorFileSchema).optional(),
-  rpm: z.record(ArchitectureSchema, PartialDescriptorFileSchema).optional(),
+  deb: z.record(ArchitectureSchema, SourceDescriptorFileSchema).optional(),
+  rpm: z.record(ArchitectureSchema, SourceDescriptorFileSchema).optional(),
 });
