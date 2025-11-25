@@ -8,9 +8,15 @@
 // save KV cache file
 // save enriched descriptor to github cache (DESCRIPTORS)
 
+import { downloadDescriptorsCache, uploadDescriptorsCache } from "../../shared";
+
 
 
 async function run() {
+  // Constants
+  const { namespaceId } = getKVConfig();
+
+
   // GitHub Action logic
   // TODO
 
@@ -18,21 +24,30 @@ async function run() {
   // TODO
 
   // Download KV cache file
+  const cache = await downloadDescriptorsCache(namespaceId, protonProduct);
+
+  // Enrich descriptor
   // TODO
+  // iterate over .deb/.rpm files
+  // create a helper for that
+  // for each file
+  //  - check cache
+  //  - if found return cached
+  //  - else
+  //     - download the file
+  //     - compute hashes and size
+  //     - enrich file descriptor
 
-  // Clean and convert data to Source
-  const sourceProduct = fromProtonToSource(apiResult);
-  if (sourceProduct.debFiles.length === 0 && sourceProduct.rpmFiles.length === 0) {
-    core.setFailed('No valid files found in Proton API response');
-    return;
-  }
+  // Save KV cache file
+  const newCache = {
+    ...cache,
+    // TODO add new/updated descriptors
+  };
+  await uploadDescriptorsCache(namespaceId, protonProduct, newCache);
 
-  // Save file
-  writeFile(cacheFile, JSON.stringify(sourceProduct, null, 2), 'utf8');
-  core.debug(`Saved Proton source data to ${cacheFile}`);
 
-  // Save source
-  cache.saveCache([cacheFile], cacheKey);
+  // Save Github cache
+  // TODO
 }
 
 // -- GitHub Action ------------------------------------------------------------
