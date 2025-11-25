@@ -19,6 +19,8 @@ export const PROTON_APIS: Readonly<Record<ProtonProduct, string>> = <const>{
  * Ignored file URLs.
  * These files are excluded from hash calculations and cache checks.
  * They seems to be placeholder or beta files without stable content.
+ *
+ * @deprecated check if the file contains the version string instead.
  */
 export const PROTON_IGNORE_FILE_URLS: Readonly<string[]> = [
   'https://proton.me/download/mail/linux/ProtonMail-desktop-beta.deb',
